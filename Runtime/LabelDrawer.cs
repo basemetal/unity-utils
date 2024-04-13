@@ -37,127 +37,130 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class LabelDrawer : MonoBehaviour
+namespace Nothke.Utils
 {
-    public Font font;
-
-    struct Label3D
+    public class LabelDrawer : MonoBehaviour
     {
-        public readonly string text;
-        public readonly Vector3 position;
-        public readonly Color color;
+        public Font font;
 
-        public Label3D(string text, Vector3 position, Color color)
+        struct Label3D
         {
-            this.text = text;
-            this.position = position;
-            this.color = color;
+            public readonly string text;
+            public readonly Vector3 position;
+            public readonly Color color;
+
+            public Label3D(string text, Vector3 position, Color color)
+            {
+                this.text = text;
+                this.position = position;
+                this.color = color;
+            }
         }
-    }
 
-    List<Label3D> labels = new List<Label3D>();
+        List<Label3D> labels = new List<Label3D>();
 
-    static readonly Color defaultColor = Color.white;
-    GUIStyle style = new GUIStyle();
+        static readonly Color defaultColor = Color.white;
+        GUIStyle style = new GUIStyle();
 
-    public static LabelDrawer e;
-    void Awake()
-    {
-        e = this;
-
-        if (font)
-            style.font = font;
-
-        style.normal.textColor = defaultColor;
-
-        // Needs to wait for end of frame because it's the only event that happens after OnGUI
-        StartCoroutine(EndOfFrameLoop());
-    }
-
-    WaitForEndOfFrame waifu = new WaitForEndOfFrame();
-
-    IEnumerator EndOfFrameLoop()
-    {
-        while (true)
+        public static LabelDrawer e;
+        void Awake()
         {
-            yield return waifu;
+            e = this;
+
+            if(font)
+                style.font = font;
+
+            style.normal.textColor = defaultColor;
+
+            // Needs to wait for end of frame because it's the only event that happens after OnGUI
+            StartCoroutine(EndOfFrameLoop());
+        }
+
+        WaitForEndOfFrame waifu = new WaitForEndOfFrame();
+
+        IEnumerator EndOfFrameLoop()
+        {
+            while(true)
+            {
+                yield return waifu;
+                labels.Clear();
+            }
+        }
+
+        static void CreateIfDoesntExist()
+        {
+            if(!e)
+            {
+                var go = new GameObject("-- LabelDrawer");
+                var drawer = go.AddComponent<LabelDrawer>();
+                e = drawer;
+            }
+        }
+
+
+        public static void Label(string text, Vector3 position)
+        {
+            CreateIfDoesntExist();
+
+            if(e.enabled)
+                e.labels.Add(new Label3D(text, position, defaultColor));
+        }
+
+        public static void Label(string text, Vector3 position, Color color)
+        {
+            CreateIfDoesntExist();
+
+            if(e.enabled)
+                e.labels.Add(new Label3D(text, position, color));
+        }
+
+        private void OnDisable()
+        {
             labels.Clear();
         }
-    }
 
-    static void CreateIfDoesntExist()
-    {
-        if (!e)
+
+        private void OnGUI()
         {
-            var go = new GameObject("-- LabelDrawer");
-            var drawer = go.AddComponent<LabelDrawer>();
-            e = drawer;
-        }
-    }
+            Camera cam = Camera.main;
 
+            Color originalContentColor = GUI.contentColor;
 
-    public static void Label(string text, Vector3 position)
-    {
-        CreateIfDoesntExist();
-
-        if (e.enabled)
-            e.labels.Add(new Label3D(text, position, defaultColor));
-    }
-
-    public static void Label(string text, Vector3 position, Color color)
-    {
-        CreateIfDoesntExist();
-
-        if (e.enabled)
-            e.labels.Add(new Label3D(text, position, color));
-    }
-
-    private void OnDisable()
-    {
-        labels.Clear();
-    }
-
-
-    private void OnGUI()
-    {
-        Camera cam = Camera.main;
-
-        Color originalContentColor = GUI.contentColor;
-
-        foreach (var label in labels)
-        {
-            Vector3 screenPos = cam.WorldToScreenPoint(label.position);
-            if (screenPos.z < 0) // if behind
-                continue;
-
-            GUI.contentColor = label.color;
-            GUI.Label(new Rect(screenPos.x, Screen.height - screenPos.y, 1000, 1000), label.text, style);
-        }
-
-        GUI.contentColor = originalContentColor;
-    }
-
-#if UNITY_EDITOR
-    private void OnDrawGizmos()
-    {
-        bool isGameView = UnityEditor.SceneView.currentDrawingSceneView == null;
-
-        if (Application.isPlaying && !isGameView && e && e.enabled)
-        {
-            if (Application.isEditor)
+            foreach(var label in labels)
             {
-                foreach (var label in labels)
-                {
-                    style.normal.textColor = label.color;
-                    UnityEditor.Handles.Label(label.position, label.text, style);
-                }
+                Vector3 screenPos = cam.WorldToScreenPoint(label.position);
+                if(screenPos.z < 0) // if behind
+                    continue;
+
+                GUI.contentColor = label.color;
+                GUI.Label(new Rect(screenPos.x, Screen.height - screenPos.y, 1000, 1000), label.text, style);
             }
 
-            // Required because WaitForEndOfFrame doesn't work when Game view is not visible
-            // When both Game and Scene view are visible at the same time tho, it should only clear when Game is not in focus
-            if (!Application.isFocused)
-                labels.Clear();
+            GUI.contentColor = originalContentColor;
         }
-    }
+
+#if UNITY_EDITOR
+        private void OnDrawGizmos()
+        {
+            bool isGameView = UnityEditor.SceneView.currentDrawingSceneView == null;
+
+            if(Application.isPlaying && !isGameView && e && e.enabled)
+            {
+                if(Application.isEditor)
+                {
+                    foreach(var label in labels)
+                    {
+                        style.normal.textColor = label.color;
+                        UnityEditor.Handles.Label(label.position, label.text, style);
+                    }
+                }
+
+                // Required because WaitForEndOfFrame doesn't work when Game view is not visible
+                // When both Game and Scene view are visible at the same time tho, it should only clear when Game is not in focus
+                if(!Application.isFocused)
+                    labels.Clear();
+            }
+        }
 #endif
+    }
 }

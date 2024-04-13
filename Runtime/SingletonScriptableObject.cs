@@ -46,42 +46,45 @@
 
 using UnityEngine;
 
-public abstract class SingletonScriptableObject<T> : ScriptableObject where T : ScriptableObject
+namespace Nothke.Utils
 {
-    static T _instance = null;
-    public static T Instance
+    public abstract class SingletonScriptableObject<T> : ScriptableObject where T : ScriptableObject
     {
-        get
+        static T _instance = null;
+        public static T Instance
         {
-            if (!_instance)
-                FindAndInit();
+            get
+            {
+                if(!_instance)
+                    FindAndInit();
 
-            return _instance;
+                return _instance;
+            }
         }
-    }
 
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    static void FindAndInit()
-    {
-        var objs = Resources.FindObjectsOfTypeAll<T>();
-
-        if (objs.Length == 0)
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void FindAndInit()
         {
-            Resources.LoadAll("");
-            objs = Resources.FindObjectsOfTypeAll<T>();
-        }
+            var objs = Resources.FindObjectsOfTypeAll<T>();
+
+            if(objs.Length == 0)
+            {
+                Resources.LoadAll("");
+                objs = Resources.FindObjectsOfTypeAll<T>();
+            }
 
 #if UNITY_EDITOR
-        // The resource might not be loaded by the editor on start, so force loading all assets first.
-        // Might be perf problem if you have a lot of assets!
+            // The resource might not be loaded by the editor on start, so force loading all assets first.
+            // Might be perf problem if you have a lot of assets!
 
-        if (objs.Length == 0)
-            Debug.LogError("A singleton instance of " + typeof(T).ToString() + " not found.");
+            if(objs.Length == 0)
+                Debug.LogError("A singleton instance of " + typeof(T).ToString() + " not found.");
 #endif
 
-        _instance = objs[0];
-        (_instance as SingletonScriptableObject<T>).Initialize();
-    }
+            _instance = objs[0];
+            (_instance as SingletonScriptableObject<T>).Initialize();
+        }
 
-    protected virtual void Initialize() { }
+        protected virtual void Initialize() { }
+    }
 }
